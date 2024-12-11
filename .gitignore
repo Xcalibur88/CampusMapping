@@ -1,2 +1,9 @@
 /bin
 /obj
+/.vscode
+
+elevation_cache/
+graphs/
+*.osm.pbf
+*.log
+/uploads

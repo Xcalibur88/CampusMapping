@@ -3,28 +3,69 @@
 @implements IAsyncDisposable
 @rendermode InteractiveServer
 @page "/map"
+
 <h3>Blazor Map with Leaflet and OpenStreetMap</h3>
 <div id ="map" style = "width:600px; height:400px;"></div>
+<InputFile OnChange="@SingleUpload" accept=".ics"/>
+@if (errors.Count > 0) {
+    <h2>Errors</h2>
+    <ul class="="text-danger>
+        @foreach (var error in errors) {
+            <li>@error</li>
+        }
+    </ul>
+}
+
 @code {
     private IJSObjectReference? module;
     private string? result;
+    List<string> errors = new();
+    
     protected override async Task OnAfterRenderAsync(bool firstRender) {
         //await JSRuntime.InvokeAsync<string>("console.log", "Running!");
         if (!firstRender) {
             return;
         }
-        var client = new HttpClient();
-        var raw = await client.GetStringAsync("http://localhost:5297/geojson.json");
-        raw = raw.Replace('\n', ' ');
+        //var client = new HttpClient();
+        //var raw = await client.GetStringAsync("http://localhost:5297/geojson.json");
+        //raw = raw.Replace('\n', ' ');
         module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./leafletmap.js");
         if (module != null) {
-            result = await module.InvokeAsync<string>("load_map", Convert.ToString(raw));
+            result = await module.InvokeAsync<string>("load_map");
         }
     }
     
     async ValueTask IAsyncDisposable.DisposeAsync() {
         if (module is not null) {
             await module.DisposeAsync();
+        }
+    }
+
+    private async Task DrawRoute(string geoJson, string color = "blue") {
+        module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./leafletmap.js");
+        if (module != null) {
+            result = await module.InvokeAsync<string>("draw_route", geoJson);
+        }
+    }
+
+    private async Task SingleUpload(InputFileChangeEventArgs e) {
+        try {
+            string newFileName = Path.ChangeExtension(Path.GetRandomFileName(), Path.GetExtension(e.File.Name));
+            string path = Path.Combine("C:\\Users\\Elijah\\source\\repos\\CampusMapping", "uploads", newFileName);
+            Directory.CreateDirectory(Path.Combine("C:\\Users\\Elijah\\source\\repos\\CampusMapping", "uploads"));
+            await using (FileStream fs = new (path, FileMode.Create)) {   
+                await e.File.OpenReadStream().CopyToAsync(fs);
+            }
+        
+            var calendar = Ical.Net.Calendar.Load(File.ReadAllText(path));
+            Schedule schedule = new(calendar);
+            Route route = schedule.GetClasses()[0].CreateRoute(schedule.GetClasses()[1]);
+            errors.Add(schedule.GetClasses()[0].location.Name);
+            await route.SendRequestAsync();
+            await DrawRoute(route.jsonResponse);
+            errors.Add("drawn");
+        } catch (Exception ex) {
+            errors.Add(ex.Message);
         }
     }
 }

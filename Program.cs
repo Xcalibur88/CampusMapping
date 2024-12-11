@@ -1,5 +1,9 @@
 using CampusMapping.Components;
 
+//Map stuff
+StartMappingService();
+
+//Web stuff 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -24,3 +28,12 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
+
+
+OpenRouteService openRouteService;
+void StartMappingService() {
+    openRouteService = new();
+    openRouteService.StartORS();
+    AppDomain.CurrentDomain.ProcessExit += (sender, eventArgs) => openRouteService.StopORS();
+    Console.WriteLine();
+}
