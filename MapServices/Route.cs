@@ -25,7 +25,6 @@ class Route(double startLatitude, double startLongitude, double endLatitude, dou
 
         if (response.IsSuccessStatusCode) {
             geoJson = await response.Content.ReadAsStringAsync();
-            //File.WriteAllText("C:\\Users\\Elijah\\source\\repos\\CampusMapping\\wwwroot\\geojson.json", jsonResponse);
         } else {
             Console.WriteLine($"Error: {response.StatusCode}");
         }

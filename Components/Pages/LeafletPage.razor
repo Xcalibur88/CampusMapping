@@ -6,16 +6,18 @@
 <div class="map-container">
     <div id="map"></div>
     <div class="button-overlay">
-        <button class="btn btn-primary" @onclick="BackButton">Back</button>
-        <button class="btn btn-secondary" @onclick="NextButton">Next</button>
+        <button class="btn btn-primary" @onclick="BackClass">Back Class</button>
+        <button class="btn btn-secondary" @onclick="NextClass">Next Class</button>
+        <button class="btn btn-primary" @onclick="BackDay">Back Day</button>
+        <button class="btn btn-secondary" @onclick="NextDay">Next Day</button>
     </div>
     <InputFile OnChange="@SingleUpload" accept=".ics" class="file-upload"/>
 </div>
 
-@if (errors.Count > 0) {
+@if (logging.Count > 0) {
     <h2>Logging</h2>
     <ul class="="text-danger>
-        @foreach (var error in errors) {
+        @foreach (var error in logging) {
             <li>@error</li>
         }
     </ul>
@@ -23,9 +25,10 @@
 
 @code {
     private IJSObjectReference? module;
-    private List<string> errors = new();
-    private List<Route> routes = [];
-    private int index = 0;
+    private List<string> logging = new();
+    private List<List<Route>> routes = [];
+    private int dayIndex = 0;
+    private int classIndex = 0;
     
     protected override async Task OnAfterRenderAsync(bool firstRender) {
         if (!firstRender) {
@@ -57,15 +60,17 @@
     }
 
     private async Task DrawAllRoutes() {
+        Console.WriteLine($"classIndex: {classIndex}");
+        Console.WriteLine($"dayRoute {dayIndex}: {routes[dayIndex].Count}");
         await ClearRoutes();
-        for (int i = 0; i < routes.Count; i++) {
-            if (i == index) continue;
-            Route route = routes[i];
+        for (int i = 0; i < routes[dayIndex].Count; i++) {
+            if (i == classIndex) continue;
+            Route route = routes[dayIndex][i];
             if (route.IsComputed()) {
                 await DrawRoute(route.GetGeoJson(), "gray", 0.5);
             }
         }
-        await DrawRoute(routes[index].GetGeoJson(), "blue");
+        await DrawRoute(routes[dayIndex][classIndex].GetGeoJson(), "blue");
     }
     private async Task SingleUpload(InputFileChangeEventArgs e) {
         try {
@@ -81,33 +86,62 @@
             var calendar = Ical.Net.Calendar.Load(calenderText);
             await ProcessCalendar(calendar);
         } catch (Exception ex) {
-            errors.Add(ex.Message);
+            Console.WriteLine(ex);
+            logging.Add(ex.Message);
         }
     }
 
     private async Task ProcessCalendar(Ical.Net.Calendar calendar) {
         Schedule schedule = new(calendar);
-        for (int i = 0; i < schedule.GetClasses(DayOfWeek.Monday).Count - 1; i++) {
-            Class startClass = schedule.GetClasses()[i];
-            Class destinationClass = schedule.GetClasses()[i + 1];
-            if (startClass.location == destinationClass.location) continue;
-            Route route = schedule.GetClasses()[i].CreateRoute(schedule.GetClasses()[i + 1]);
-            await route.SendRequestAsync();
-            routes.Add(route);
+        routes.Clear();
+        dayIndex = 0;
+        classIndex = 0;
+        for (int day = 1; day < 6; day++) {
+            List<Route> daysRoutes = new List<Route>();
+            List<Class> classes = schedule.GetClasses(day);
+            for (int i = 0; i < classes.Count - 1; i++) {
+                Class startClass = classes[i];
+                Class destinationClass = classes[i + 1];
+                if (startClass.location == destinationClass.location) continue;
+                Route route = classes[i].CreateRoute(classes[i + 1]);
+                await route.SendRequestAsync();
+                daysRoutes.Add(route);
+            }
+            routes.Add(daysRoutes);
         }
+        foreach (Class cls in schedule.GetClasses()) {
+            Console.WriteLine($"{cls.location.Name} {cls.startTime.DayOfWeek}");
+        }
+        
         await DrawAllRoutes();
     }
 
-    private async Task NextButton() {
-        if (index < routes.Count - 1) {
-            index++;
+    private async Task NextClass() {
+        if (classIndex < routes[dayIndex].Count - 1) {
+            classIndex++;
             await DrawAllRoutes();
         }
     }
 
-    private async Task BackButton() {
-        if (index > 0) {
-            index--;
+    private async Task BackClass() {
+        if (classIndex > 0) {
+            classIndex--;
+            await DrawAllRoutes();
+        }
+    }
+
+    private async Task NextDay() {
+        if (dayIndex < routes.Count - 1) {
+            dayIndex++;
+            classIndex = 0;
+            await DrawAllRoutes();
+        }
+    }
+
+    private async Task BackDay() {
+        if (dayIndex > 0) {
+            dayIndex--;
+            classIndex = 0;
             await DrawAllRoutes();
         }
     }

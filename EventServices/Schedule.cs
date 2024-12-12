@@ -21,7 +21,7 @@ class Schedule {
         return classes;
     }
 
-    public List<Class> GetClasses(DayOfWeek dayOfWeek) {
-        return classes.Select(cls => cls).Where(cls => cls.startTime.DayOfWeek == dayOfWeek).ToList();
+    public List<Class> GetClasses(int day) {
+        return classes.Select(cls => cls).Where(cls => (int) cls.startTime.DayOfWeek == day).ToList();
     }
 }
