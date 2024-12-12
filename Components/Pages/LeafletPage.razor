@@ -1,14 +1,19 @@
 @inject IJSRuntime JSRuntime
-@inject ILogger<LeafletPage> Logger
 @implements IAsyncDisposable
 @rendermode InteractiveServer
-@page "/map"
+@page "/"
 
-<h3>Blazor Map with Leaflet and OpenStreetMap</h3>
-<div id ="map" style = "width:600px; height:400px;"></div>
-<InputFile OnChange="@SingleUpload" accept=".ics"/>
+<div class="map-container">
+    <div id="map"></div>
+    <div class="button-overlay">
+        <button class="btn btn-primary" @onclick="BackButton">Back</button>
+        <button class="btn btn-secondary" @onclick="NextButton">Next</button>
+    </div>
+    <InputFile OnChange="@SingleUpload" accept=".ics" class="file-upload"/>
+</div>
+
 @if (errors.Count > 0) {
-    <h2>Errors</h2>
+    <h2>Logging</h2>
     <ul class="="text-danger>
         @foreach (var error in errors) {
             <li>@error</li>
@@ -18,20 +23,17 @@
 
 @code {
     private IJSObjectReference? module;
-    private string? result;
-    List<string> errors = new();
+    private List<string> errors = new();
+    private List<Route> routes = [];
+    private int index = 0;
     
     protected override async Task OnAfterRenderAsync(bool firstRender) {
-        //await JSRuntime.InvokeAsync<string>("console.log", "Running!");
         if (!firstRender) {
             return;
         }
-        //var client = new HttpClient();
-        //var raw = await client.GetStringAsync("http://localhost:5297/geojson.json");
-        //raw = raw.Replace('\n', ' ');
         module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./leafletmap.js");
         if (module != null) {
-            result = await module.InvokeAsync<string>("load_map");
+            await module.InvokeAsync<string>("load_map");
         }
     }
     
@@ -41,31 +43,72 @@
         }
     }
 
-    private async Task DrawRoute(string geoJson, string color = "blue") {
-        module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./leafletmap.js");
+    private async Task DrawRoute(string geoJson, string color = "blue", double opacity = 1) {
         if (module != null) {
-            result = await module.InvokeAsync<string>("draw_route", geoJson);
+            await module.InvokeAsync<string>("draw_route", geoJson, color, opacity);
+            
         }
     }
 
+    private async Task ClearRoutes() {
+        if (module != null) {
+            await module.InvokeAsync<string>("clear_map");
+        }
+    }
+
+    private async Task DrawAllRoutes() {
+        await ClearRoutes();
+        for (int i = 0; i < routes.Count; i++) {
+            if (i == index) continue;
+            Route route = routes[i];
+            if (route.IsComputed()) {
+                await DrawRoute(route.GetGeoJson(), "gray", 0.5);
+            }
+        }
+        await DrawRoute(routes[index].GetGeoJson(), "blue");
+    }
     private async Task SingleUpload(InputFileChangeEventArgs e) {
         try {
             string newFileName = Path.ChangeExtension(Path.GetRandomFileName(), Path.GetExtension(e.File.Name));
-            string path = Path.Combine("C:\\Users\\Elijah\\source\\repos\\CampusMapping", "uploads", newFileName);
-            Directory.CreateDirectory(Path.Combine("C:\\Users\\Elijah\\source\\repos\\CampusMapping", "uploads"));
-            await using (FileStream fs = new (path, FileMode.Create)) {   
+            string path = Path.Combine("./uploads", newFileName);
+            Directory.CreateDirectory("./uploads");
+            await using (FileStream fs = new(path, FileMode.Create)) {
                 await e.File.OpenReadStream().CopyToAsync(fs);
             }
-        
-            var calendar = Ical.Net.Calendar.Load(File.ReadAllText(path));
-            Schedule schedule = new(calendar);
-            Route route = schedule.GetClasses()[0].CreateRoute(schedule.GetClasses()[1]);
-            errors.Add(schedule.GetClasses()[0].location.Name);
-            await route.SendRequestAsync();
-            await DrawRoute(route.jsonResponse);
-            errors.Add("drawn");
+
+            string calenderText = File.ReadAllText(path);
+            Directory.Delete("./uploads", true);
+            var calendar = Ical.Net.Calendar.Load(calenderText);
+            await ProcessCalendar(calendar);
         } catch (Exception ex) {
             errors.Add(ex.Message);
+        }
+    }
+
+    private async Task ProcessCalendar(Ical.Net.Calendar calendar) {
+        Schedule schedule = new(calendar);
+        for (int i = 0; i < schedule.GetClasses(DayOfWeek.Monday).Count - 1; i++) {
+            Class startClass = schedule.GetClasses()[i];
+            Class destinationClass = schedule.GetClasses()[i + 1];
+            if (startClass.location == destinationClass.location) continue;
+            Route route = schedule.GetClasses()[i].CreateRoute(schedule.GetClasses()[i + 1]);
+            await route.SendRequestAsync();
+            routes.Add(route);
+        }
+        await DrawAllRoutes();
+    }
+
+    private async Task NextButton() {
+        if (index < routes.Count - 1) {
+            index++;
+            await DrawAllRoutes();
+        }
+    }
+
+    private async Task BackButton() {
+        if (index > 0) {
+            index--;
+            await DrawAllRoutes();
         }
     }
 }

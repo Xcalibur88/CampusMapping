@@ -20,4 +20,8 @@ class Schedule {
     public List<Class> GetClasses() {
         return classes;
     }
+
+    public List<Class> GetClasses(DayOfWeek dayOfWeek) {
+        return classes.Select(cls => cls).Where(cls => cls.startTime.DayOfWeek == dayOfWeek).ToList();
+    }
 }

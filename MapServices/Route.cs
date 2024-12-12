@@ -6,7 +6,15 @@ class Route(double startLatitude, double startLongitude, double endLatitude, dou
     private readonly double startLongitude = startLongitude;
     private readonly double endLatitude = endLatitude;
     private readonly double endLongitude = endLongitude;
-    public string? jsonResponse;
+    public string? geoJson;
+
+    public bool IsComputed() {
+        return geoJson != null;
+    }
+
+    public string GetGeoJson() {
+        return geoJson;
+    }
     
     public async Task SendRequestAsync() {
         string baseUrl = "http://localhost:8082/ors/v2/directions/foot-walking/geojson";
@@ -16,7 +24,7 @@ class Route(double startLatitude, double startLongitude, double endLatitude, dou
         HttpResponseMessage response = await client.PostAsync(baseUrl, content);
 
         if (response.IsSuccessStatusCode) {
-            jsonResponse = await response.Content.ReadAsStringAsync();
+            geoJson = await response.Content.ReadAsStringAsync();
             //File.WriteAllText("C:\\Users\\Elijah\\source\\repos\\CampusMapping\\wwwroot\\geojson.json", jsonResponse);
         } else {
             Console.WriteLine($"Error: {response.StatusCode}");
