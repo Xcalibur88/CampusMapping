@@ -14,15 +14,6 @@
     <InputFile OnChange="@SingleUpload" accept=".ics" class="file-upload"/>
 </div>
 
-@if (logging.Count > 0) {
-    <h2>Logging</h2>
-    <ul class="="text-danger>
-        @foreach (var error in logging) {
-            <li>@error</li>
-        }
-    </ul>
-}
-
 @code {
     private IJSObjectReference? module;
     private List<string> logging = new();
@@ -46,11 +37,24 @@
         }
     }
 
-    private async Task DrawRoute(string geoJson, string color = "blue", double opacity = 1) {
+    private async Task DrawGeoJson(string geoJson, string color = "blue", double opacity = 1) {
         if (module != null) {
             await module.InvokeAsync<string>("draw_route", geoJson, color, opacity);
             
         }
+    }
+
+    private async Task DrawMarker(double lat, double lng, string popup = null) {
+        if (module != null) {
+            await module.InvokeAsync<string>("add_marker", lat, lng, popup);
+            
+        }
+    }
+
+    private async Task DrawRoute(Route route, string color = "blue", double opacity = 1) {
+        await DrawGeoJson(route.GetGeoJson(), color, opacity);
+        await DrawMarker(route.GetStartLatLng()[0], route.GetStartLatLng()[1], route.GetStartLocation().Name);
+        await DrawMarker(route.GetEndLatLng()[0], route.GetEndLatLng()[1], route.GetEndLocation().Name);
     }
 
     private async Task ClearRoutes() {
@@ -60,18 +64,19 @@
     }
 
     private async Task DrawAllRoutes() {
-        Console.WriteLine($"classIndex: {classIndex}");
-        Console.WriteLine($"dayRoute {dayIndex}: {routes[dayIndex].Count}");
         await ClearRoutes();
         for (int i = 0; i < routes[dayIndex].Count; i++) {
             if (i == classIndex) continue;
             Route route = routes[dayIndex][i];
             if (route.IsComputed()) {
-                await DrawRoute(route.GetGeoJson(), "gray", 0.5);
+                await DrawRoute(route, "gray", 0.5);
             }
         }
-        await DrawRoute(routes[dayIndex][classIndex].GetGeoJson(), "blue");
+        var selectedRoute = routes[dayIndex][classIndex];
+        await DrawRoute(selectedRoute, "blue");
     }
+
+
     private async Task SingleUpload(InputFileChangeEventArgs e) {
         try {
             string newFileName = Path.ChangeExtension(Path.GetRandomFileName(), Path.GetExtension(e.File.Name));
@@ -87,7 +92,6 @@
             await ProcessCalendar(calendar);
         } catch (Exception ex) {
             Console.WriteLine(ex);
-            logging.Add(ex.Message);
         }
     }
 
@@ -108,9 +112,6 @@
                 daysRoutes.Add(route);
             }
             routes.Add(daysRoutes);
-        }
-        foreach (Class cls in schedule.GetClasses()) {
-            Console.WriteLine($"{cls.location.Name} {cls.startTime.DayOfWeek}");
         }
         
         await DrawAllRoutes();

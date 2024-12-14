@@ -35,5 +35,4 @@ void StartMappingService() {
     openRouteService = new();
     openRouteService.Start();
     AppDomain.CurrentDomain.ProcessExit += (sender, eventArgs) => openRouteService.Dispose();
-    Console.WriteLine();
 }

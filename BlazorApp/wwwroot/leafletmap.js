@@ -10,22 +10,32 @@ export function load_map() {
   return "";
 }
 
+function get_map() {
+  return document.getElementById("map").leafletMap;
+}
+
 export function draw_route(geoJson, color, opacity) {
-  const map = document.getElementById("map").leafletMap;
   const style = {
     color: color,
     weight: 4,
     opacity: opacity,
   };
-  L.geoJSON(JSON.parse(geoJson), { style: style }).addTo(map);
+  L.geoJSON(JSON.parse(geoJson), { style: style }).addTo(get_map());
   console.log("GeoJSON processed and added to the map.");
   return "";
 }
 
+export function add_marker(lat, lng, popup) {
+  var marker = L.marker([lat, lng]).addTo(get_map());
+  if (popup != null) {
+    marker.bindPopup(`<b>${popup}</b>`);
+  }
+}
+
 export function clear_map() {
-  const map = document.getElementById("map").leafletMap;
+  const map = get_map();
   map.eachLayer((layer) => {
-    if (layer instanceof L.Polyline) {
+    if (layer instanceof L.Polyline || layer instanceof L.Marker) {
       map.removeLayer(layer);
     }
   });

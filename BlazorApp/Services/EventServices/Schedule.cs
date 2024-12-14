@@ -12,7 +12,7 @@ class Schedule {
             var eventStart = evt.Start.AsSystemLocal;
             var eventEnd = evt.End.AsSystemLocal;
             if (eventStart < fullWeekEnd && eventEnd >= fullWeekStart) {
-                classes.Add(new Class(eventStart, eventEnd, Buildings.FromString(evt.Location.ToString()[..3]), int.Parse(evt.Location[4..])));
+                classes.Add(new Class(eventStart, eventEnd, Locations.FromString(evt.Location.ToString()[..3]), int.Parse(evt.Location[4..])));
             }
         }
     }
