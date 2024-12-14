@@ -6,7 +6,7 @@ class Route(double startLatitude, double startLongitude, double endLatitude, dou
     private readonly double startLongitude = startLongitude;
     private readonly double endLatitude = endLatitude;
     private readonly double endLongitude = endLongitude;
-    public string? geoJson;
+    private string? geoJson;
 
     public bool IsComputed() {
         return geoJson != null;

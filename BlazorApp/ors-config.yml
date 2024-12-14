@@ -1,17 +1,17 @@
 ors:
   engine:
     profile_default:
-      graph_path: "./MapServices/Data/graphs"
+      graph_path: "./OpenRouteService/graphs"
       build:
-        source_file: "./MapServices/Data/idaho-latest.osm.pbf"
+        source_file: "./OpenRouteService/idaho-latest.osm.pbf"
     profiles:
       foot-walking:
         enabled: true
     elevation:
-      cache_path: "./MapServices/Data/elevation_cache"
+      cache_path: ".OpenRouteService/elevation_cache"
 logging:
   file:
-    name: ./MapServices/Data/ors.log
+    name: ./OpenRouteService/ors.log
 
 #server:
 #  port: 8082

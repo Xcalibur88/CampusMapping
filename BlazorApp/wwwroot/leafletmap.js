@@ -1,6 +1,6 @@
 export function load_map() {
   let map = L.map("map").setView(
-    { lon: -111.78327855565847, lat: 43.819511901490934 },
+    { lon: -111.78329552340168, lat: 43.816511802068376 },
     16
   );
   document.getElementById("map").leafletMap = map;
