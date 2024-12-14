@@ -12,7 +12,7 @@ This project will map routes between all your classes for a given semester at BY
    - Your choice of using a git integration in vscode, or a direct zip download.
 2. Download OpenStreetMap's map of Idaho
    - Go to [download.geofabrik.de](https://download.geofabrik.de/north-america/us/idaho.html) and download the OSM region of Idaho
-   - Take your download `idaho-latest.osm.pbf` file and drop it in the `OpenRouteService` folder next to the `ors.jar` file
+   - Take your downloaded `idaho-latest.osm.pbf` file and drop it in the `OpenRouteService` folder next to the `ors.jar` file
 
 ### Running the program
 To start the application, I recommend using VSCode's built-in debugger.
